@@ -1,0 +1,186 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum UserRole {
+  USER
+  FIELD_OWNER
+  TOURNAMENT_OPERATOR
+  SUPER_ADMIN
+}
+
+enum SportType {
+  FOOTBALL
+  BASKETBALL
+  TENNIS
+  VOLLEYBALL
+}
+
+enum FieldStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+enum PaymentMethod {
+  CARD
+  CASH
+  PAYME
+  CLICK
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  REFUNDED
+}
+
+enum TournamentStatus {
+  PENDING
+  APPROVED
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+// ─── Models ───────────────────────────────────────────────────────────────────
+
+model User {
+  id         String   @id @default(cuid())
+  telegramId String   @unique
+  firstName  String
+  lastName   String?
+  username   String?
+  avatar     String?
+  role       UserRole @default(USER)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  fields      Field[]
+  bookings    Booking[]
+  tournaments Tournament[]
+  reviews     Review[]
+
+  @@index([telegramId])
+}
+
+model Field {
+  id          String      @id @default(cuid())
+  name        String
+  description String?
+  address     String
+  lat         Float?
+  lng         Float?
+  sportTypes  SportType[]
+  photos      String[]
+  pricePerHour Float
+  currency    String      @default("сум")
+  rating      Float       @default(0)
+  reviewCount Int         @default(0)
+  status      FieldStatus @default(PENDING)
+
+  // Amenities
+  hasLockerRoom Boolean @default(false)
+  hasParking    Boolean @default(false)
+  hasLighting   Boolean @default(false)
+  hasCafeteria  Boolean @default(false)
+  hasShower     Boolean @default(false)
+  hasBallRent   Boolean @default(false)
+
+  ownerId   String
+  owner     User      @relation(fields: [ownerId], references: [id])
+  bookings  Booking[]
+  reviews   Review[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([ownerId])
+}
+
+model WorkingHours {
+  id         String  @id @default(cuid())
+  fieldId    String
+  dayOfWeek  Int     // 0=Sun … 6=Sat
+  openTime   String  // "08:00"
+  closeTime  String  // "22:00"
+  isClosed   Boolean @default(false)
+}
+
+model Booking {
+  id            String        @id @default(cuid())
+  fieldId       String
+  field         Field         @relation(fields: [fieldId], references: [id])
+  userId        String
+  user          User          @relation(fields: [userId], references: [id])
+  date          String        // "2024-04-15"
+  startTime     String        // "10:00"
+  endTime       String        // "12:00"
+  durationHours Float
+  totalPrice    Float
+  currency      String        @default("сум")
+  status        BookingStatus @default(PENDING)
+  paymentMethod PaymentMethod
+  paymentStatus PaymentStatus @default(PENDING)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([fieldId, date])
+  @@index([userId])
+  @@index([status])
+}
+
+model Tournament {
+  id                   String           @id @default(cuid())
+  name                 String
+  description          String?
+  sportType            SportType
+  format               String           // "5x5", "7x7" etc
+  coverPhoto           String?
+  location             String
+  startDate            DateTime
+  endDate              DateTime
+  registrationDeadline DateTime
+  maxTeams             Int
+  registeredTeams      Int              @default(0)
+  prizePool            Float?
+  currency             String           @default("сум")
+  entryFee             Float?
+  status               TournamentStatus @default(PENDING)
+  operatorId           String
+  operator             User             @relation(fields: [operatorId], references: [id])
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+
+  @@index([status])
+  @@index([sportType])
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  fieldId   String
+  field     Field    @relation(fields: [fieldId], references: [id])
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  rating    Int      // 1-5
+  comment   String?
+  createdAt DateTime @default(now())
+
+  @@unique([fieldId, userId])
+  @@index([fieldId])
+}
