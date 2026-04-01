@@ -43,7 +43,7 @@ export async function authRoutes(app: FastifyInstance) {
     let referralCode: string
     while (true) {
       const code = generateReferralCode()
-      const exists = await prisma.user.findUnique({ where: { referralCode: code } })
+      const exists = await prisma.user.findFirst({ where: { referralCode: code } })
       if (!exists) { referralCode = code; break }
     }
 
