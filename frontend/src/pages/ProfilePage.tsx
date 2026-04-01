@@ -129,6 +129,25 @@ export function ProfilePage() {
         ))}
       </div>
 
+      {/* Become partner CTA for regular users */}
+      {user?.role === 'USER' && (
+        <div className="glass-card p-4 mb-4 border border-primary/20">
+          <div className="flex items-center gap-3 mb-3">
+            <span className="text-2xl">🤝</span>
+            <div>
+              <p className="text-white font-semibold text-sm">Стать партнёром ПОЛЕ</p>
+              <p className="text-white/40 text-xs">Разместите своё поле и начните зарабатывать</p>
+            </div>
+          </div>
+          <button
+            onClick={() => navigate('/become-partner')}
+            className="neon-btn w-full text-sm"
+          >
+            Подробнее →
+          </button>
+        </div>
+      )}
+
       {/* Admin panel link */}
       {(user?.role === 'SUPER_ADMIN' || user?.role === 'FIELD_OWNER') && (
         <div className="glass-card overflow-hidden mb-4">
