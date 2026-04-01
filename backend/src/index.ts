@@ -14,6 +14,7 @@ import { uploadRoutes } from './routes/upload'
 import { reviewRoutes } from './routes/reviews'
 import { paymentRoutes } from './routes/payment'
 import { partnerRoutes } from './routes/partner'
+import { seedIfEmpty } from './utils/seed'
 
 export const prisma = new PrismaClient()
 
@@ -62,6 +63,8 @@ async function main() {
 
   const PORT = Number(process.env.PORT) || 3000
   const HOST = process.env.HOST || '0.0.0.0'
+
+  await seedIfEmpty(prisma)
 
   try {
     await app.listen({ port: PORT, host: HOST })
