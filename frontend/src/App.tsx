@@ -9,9 +9,11 @@ import { FieldDetailPage } from '@/pages/FieldDetailPage'
 import { TournamentsPage } from '@/pages/TournamentsPage'
 import { BookingsPage } from '@/pages/BookingsPage'
 import { ProfilePage } from '@/pages/ProfilePage'
+import { OwnerDashboardPage } from '@/pages/OwnerDashboardPage'
+import { AdminPanelPage } from '@/pages/AdminPanelPage'
 
 function AppContent() {
-  const { setUser, setToken, setLoading, token } = useAuthStore()
+  const { user, setUser, setToken, setLoading, token } = useAuthStore()
 
   useEffect(() => {
     const init = async () => {
@@ -27,7 +29,7 @@ function AppContent() {
           setUser(res.data.data)
         }
       } catch {
-        // no-op — guest mode
+        // guest mode
       } finally {
         setLoading(false)
       }
@@ -35,16 +37,32 @@ function AppContent() {
     init()
   }, [])
 
+  const isOwner = user?.role === 'FIELD_OWNER'
+  const isAdmin = user?.role === 'SUPER_ADMIN'
+
   return (
     <div className="relative">
       <Routes>
-        <Route path="/"               element={<HomePage />} />
-        <Route path="/fields"         element={<FieldsPage />} />
-        <Route path="/fields/:id"     element={<FieldDetailPage />} />
-        <Route path="/tournaments"    element={<TournamentsPage />} />
-        <Route path="/bookings"       element={<BookingsPage />} />
-        <Route path="/profile"        element={<ProfilePage />} />
-        <Route path="*"               element={<Navigate to="/" replace />} />
+        <Route path="/"            element={<HomePage />} />
+        <Route path="/fields"      element={<FieldsPage />} />
+        <Route path="/fields/:id"  element={<FieldDetailPage />} />
+        <Route path="/tournaments" element={<TournamentsPage />} />
+        <Route path="/bookings"    element={<BookingsPage />} />
+        <Route path="/profile"     element={<ProfilePage />} />
+
+        {/* Owner routes */}
+        <Route
+          path="/dashboard"
+          element={isOwner || isAdmin ? <OwnerDashboardPage /> : <Navigate to="/" replace />}
+        />
+
+        {/* Admin routes */}
+        <Route
+          path="/admin"
+          element={isAdmin ? <AdminPanelPage /> : <Navigate to="/" replace />}
+        />
+
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <BottomNav />
     </div>

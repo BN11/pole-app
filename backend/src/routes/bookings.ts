@@ -69,6 +69,26 @@ export async function bookingRoutes(app: FastifyInstance) {
     return reply.status(201).send({ data: booking })
   })
 
+  // PATCH /api/bookings/:id/confirm (field owner only)
+  app.patch('/:id/confirm', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const { id } = request.params as { id: string }
+    const { userId } = request.user as { userId: string }
+
+    const booking = await prisma.booking.findUnique({
+      where: { id },
+      include: { field: true },
+    })
+    if (!booking) return reply.status(404).send({ error: 'Not found' })
+    if (booking.field.ownerId !== userId) return reply.status(403).send({ error: 'Forbidden' })
+    if (booking.status !== 'PENDING') return reply.status(400).send({ error: 'Cannot confirm' })
+
+    const updated = await prisma.booking.update({
+      where: { id },
+      data: { status: 'CONFIRMED' },
+    })
+    return reply.send({ data: updated })
+  })
+
   // PATCH /api/bookings/:id/cancel
   app.patch('/:id/cancel', { preHandler: [app.authenticate] }, async (request, reply) => {
     const { id } = request.params as { id: string }
