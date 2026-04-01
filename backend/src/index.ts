@@ -12,50 +12,57 @@ import { ownerRoutes } from './routes/owner'
 
 export const prisma = new PrismaClient()
 
-const app = Fastify({ logger: process.env.NODE_ENV !== 'production' })
+async function main() {
+  const app = Fastify({ logger: process.env.NODE_ENV !== 'production' })
 
-// ─── Plugins ─────────────────────────────────────────────────────────────────
+  // ─── Plugins ───────────────────────────────────────────────────────────────
 
-await app.register(cors, {
-  origin: process.env.FRONTEND_URL || '*',
-  credentials: true,
-})
+  await app.register(cors, {
+    origin: process.env.FRONTEND_URL || '*',
+    credentials: true,
+  })
 
-await app.register(jwt, {
-  secret: process.env.JWT_SECRET || 'pole-super-secret-change-in-prod',
-})
+  await app.register(jwt, {
+    secret: process.env.JWT_SECRET || 'pole-super-secret-change-in-prod',
+  })
 
-// ─── Decorators ───────────────────────────────────────────────────────────────
+  // ─── Decorators ─────────────────────────────────────────────────────────────
 
-app.decorate('authenticate', async (request: any, reply: any) => {
+  app.decorate('authenticate', async (request: any, reply: any) => {
+    try {
+      await request.jwtVerify()
+    } catch {
+      reply.status(401).send({ error: 'Unauthorized' })
+    }
+  })
+
+  // ─── Routes ─────────────────────────────────────────────────────────────────
+
+  await app.register(authRoutes,       { prefix: '/api/auth' })
+  await app.register(fieldRoutes,      { prefix: '/api/fields' })
+  await app.register(bookingRoutes,    { prefix: '/api/bookings' })
+  await app.register(tournamentRoutes, { prefix: '/api/tournaments' })
+  await app.register(adminRoutes,      { prefix: '/api/admin' })
+  await app.register(ownerRoutes,      { prefix: '/api/owner' })
+
+  // Health check
+  app.get('/health', async () => ({ status: 'ok', timestamp: new Date().toISOString() }))
+
+  // ─── Start ───────────────────────────────────────────────────────────────────
+
+  const PORT = Number(process.env.PORT) || 3000
+  const HOST = process.env.HOST || '0.0.0.0'
+
   try {
-    await request.jwtVerify()
-  } catch {
-    reply.status(401).send({ error: 'Unauthorized' })
+    await app.listen({ port: PORT, host: HOST })
+    console.log(`🚀 ПОЛЕ API running on http://${HOST}:${PORT}`)
+  } catch (err) {
+    app.log.error(err)
+    process.exit(1)
   }
-})
-
-// ─── Routes ───────────────────────────────────────────────────────────────────
-
-await app.register(authRoutes,       { prefix: '/api/auth' })
-await app.register(fieldRoutes,      { prefix: '/api/fields' })
-await app.register(bookingRoutes,    { prefix: '/api/bookings' })
-await app.register(tournamentRoutes, { prefix: '/api/tournaments' })
-await app.register(adminRoutes,      { prefix: '/api/admin' })
-await app.register(ownerRoutes,      { prefix: '/api/owner' })
-
-// Health check
-app.get('/health', async () => ({ status: 'ok', timestamp: new Date().toISOString() }))
-
-// ─── Start ────────────────────────────────────────────────────────────────────
-
-const PORT = Number(process.env.PORT) || 3000
-const HOST = process.env.HOST || '0.0.0.0'
-
-try {
-  await app.listen({ port: PORT, host: HOST })
-  console.log(`🚀 ПОЛЕ API running on http://${HOST}:${PORT}`)
-} catch (err) {
-  app.log.error(err)
-  process.exit(1)
 }
+
+main().catch((err) => {
+  console.error(err)
+  process.exit(1)
+})

@@ -66,7 +66,7 @@ export async function adminRoutes(app: FastifyInstance) {
   // PATCH /api/admin/tournaments/:id/reject
   app.patch('/tournaments/:id/reject', { preHandler: [requireSuperAdmin] }, async (request, reply) => {
     const { id } = request.params as { id: string }
-    const tournament = await prisma.tournament.update({ where: { id }, data: { status: 'REJECTED' } })
+    const tournament = await prisma.tournament.update({ where: { id }, data: { status: 'CANCELLED' } })
     return reply.send({ data: tournament })
   })
 }
