@@ -1,5 +1,2 @@
 [phases.build]
-cmds = ["npm install", "npx prisma generate", "chmod +x start.sh"]
-
-[start]
-cmd = "sh start.sh"
+cmds = ["npm install", "npx prisma generate", "npm run build"]
