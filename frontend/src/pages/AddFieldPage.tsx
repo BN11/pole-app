@@ -104,7 +104,7 @@ export function AddFieldPage() {
     <div className="flex flex-col min-h-screen pb-24">
       {/* Header */}
       <div className="px-4 pt-4 pb-3 flex items-center gap-3">
-        <button onClick={() => step > 1 ? setStep(s => (s - 1) as any : navigate(-1))}
+        <button onClick={() => step > 1 ? setStep(s => (s - 1) as any) : navigate(-1)}
           className="w-9 h-9 rounded-xl bg-surface flex items-center justify-center">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 text-white">
             <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
