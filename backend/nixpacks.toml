@@ -1,5 +1,5 @@
 [phases.build]
-cmds = ["npm install", "npx prisma generate"]
+cmds = ["npm install", "npx prisma generate", "chmod +x start.sh"]
 
 [start]
-cmd = "./node_modules/.bin/prisma db push && ./node_modules/.bin/tsx src/index.ts"
+cmd = "sh start.sh"
