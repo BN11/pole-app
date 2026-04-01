@@ -1,2 +1,2 @@
 [phases.build]
-cmds = ["npm install", "npx prisma generate"]
+cmds = ["npm install", "npx prisma generate", "npx prisma db push --accept-data-loss"]
