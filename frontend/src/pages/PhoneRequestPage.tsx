@@ -25,15 +25,16 @@ export function PhoneRequestPage({ onDone }: Props) {
     }
 
     setLoading(true)
-    twa.requestContact(async (ok: boolean, data?: { contact?: { phone_number: string } }) => {
-      if (!ok || !data?.contact?.phone_number) {
+    twa.requestContact(async (ok: boolean, data?: { responseUnsafe?: { contact?: { phone_number: string } }; contact?: { phone_number: string } }) => {
+      const phone = data?.responseUnsafe?.contact?.phone_number ?? data?.contact?.phone_number
+      if (!ok || !phone) {
         setLoading(false)
         setError('Не удалось получить номер. Попробуйте ещё раз.')
         return
       }
 
       try {
-        const res = await api.post('/auth/phone', { phone: data.contact.phone_number })
+        const res = await api.post('/auth/phone', { phone })
         setUser(res.data.data)
         onDone()
       } catch {
@@ -76,16 +77,9 @@ export function PhoneRequestPage({ onDone }: Props) {
       <button
         onClick={handleShare}
         disabled={loading}
-        className="neon-btn w-full disabled:opacity-40 mb-3"
+        className="neon-btn w-full disabled:opacity-40"
       >
         {loading ? 'Загрузка...' : '📲 Поделиться номером'}
-      </button>
-
-      <button
-        onClick={onDone}
-        className="text-white/30 text-sm py-2"
-      >
-        Пропустить
       </button>
     </div>
   )

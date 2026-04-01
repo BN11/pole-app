@@ -190,7 +190,7 @@ declare global {
         colorScheme: 'light' | 'dark'
         themeParams: Record<string, string>
         openTelegramLink: (url: string) => void
-        requestContact: (callback: (ok: boolean, data?: { contact?: { phone_number: string; first_name: string; user_id?: number } }) => void) => void
+        requestContact: (callback: (ok: boolean, data?: { responseUnsafe?: { contact?: { phone_number: string; first_name: string; user_id?: number } }; contact?: { phone_number: string; first_name: string; user_id?: number } }) => void) => void
       }
     }
     ymaps?: any
