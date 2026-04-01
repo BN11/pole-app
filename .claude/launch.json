@@ -3,7 +3,7 @@
   "configurations": [
     {
       "name": "pole-frontend",
-      "runtimeExecutable": "npm",
+      "runtimeExecutable": "/Users/feruzuktamov/.nvm/versions/node/v24.13.0/bin/npm",
       "runtimeArgs": ["run", "dev"],
       "port": 5173,
       "cwd": "/Users/feruzuktamov/Desktop/pole-app/frontend"
