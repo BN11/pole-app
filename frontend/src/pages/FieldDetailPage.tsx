@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, SPORT_LABELS, SPORT_ICONS, formatPrice } from '@/utils/api'
 import { StarIcon, LocationIcon, ClockIcon, ParkingIcon, ShowerIcon, LightbulbIcon } from '@/components/ui/Icons'
+import { FieldMap } from '@/components/YandexMap'
 import type { Field, TimeSlot } from '@/types'
 import { format, addDays } from 'date-fns'
 import { ru } from 'date-fns/locale'
+import { useAuthStore } from '@/store/useAuthStore'
 
 const AMENITY_ICONS = [
   { key: 'hasLockerRoom', label: 'Раздевалка', icon: ShowerIcon },
@@ -16,6 +18,7 @@ const AMENITY_ICONS = [
 export function FieldDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { user } = useAuthStore()
   const [photoIndex, setPhotoIndex] = useState(0)
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null)
@@ -195,6 +198,20 @@ export function FieldDetailPage() {
             <p className="text-white/60 text-sm leading-relaxed">{field.description}</p>
           </div>
         )}
+
+        {/* Map */}
+        {(field.lat && field.lng) && (
+          <div>
+            <h3 className="section-title mb-3">На карте</h3>
+            <FieldMap field={field} />
+            <p className="text-white/40 text-xs mt-2 flex items-center gap-1">
+              <LocationIcon className="w-3 h-3" />{field.address}
+            </p>
+          </div>
+        )}
+
+        {/* Reviews */}
+        <ReviewSection fieldId={id!} userId={user?.id} />
       </div>
 
       {/* Sticky bottom CTA */}
@@ -214,16 +231,118 @@ export function FieldDetailPage() {
           )}
         </div>
         <button
-          onClick={() => selectedSlot && navigate(`/booking/${id}?slot=${selectedSlot.time}&date=${format(selectedDate, 'yyyy-MM-dd')}`)}
+          onClick={() => {
+            if (!selectedSlot || !field) return
+            const endH = parseInt(selectedSlot.time) + 1
+            const endTime = `${String(endH).padStart(2, '0')}:00`
+            navigate('/booking/confirm', {
+              state: {
+                field,
+                date: format(selectedDate, 'yyyy-MM-dd'),
+                startTime: selectedSlot.time,
+                endTime,
+                durationHours: 1,
+                totalPrice: selectedSlot.price,
+              },
+            })
+          }}
           disabled={!selectedSlot}
           className={`w-full py-4 rounded-2xl font-bold text-base transition-all ${
-            selectedSlot
-              ? 'neon-btn'
-              : 'bg-surface text-white/30 cursor-not-allowed'
+            selectedSlot ? 'neon-btn' : 'bg-surface text-white/30 cursor-not-allowed'
           }`}
         >
           {selectedSlot ? 'Забронировать' : 'Выберите время'}
         </button>
+      </div>
+    </div>
+  )
+}
+
+// ─── Reviews ─────────────────────────────────────────────────────────────────
+
+interface Review { id: string; rating: number; comment?: string; user: { firstName: string; lastName?: string; avatar?: string } }
+
+function ReviewSection({ fieldId, userId }: { fieldId: string; userId?: string }) {
+  const qc = useQueryClient()
+  const [showForm, setShowForm] = useState(false)
+  const [rating, setRating] = useState(5)
+  const [comment, setComment] = useState('')
+
+  const { data: reviews } = useQuery<Review[]>({
+    queryKey: ['reviews', fieldId],
+    queryFn: async () => {
+      const res = await api.get(`/fields/${fieldId}/reviews`)
+      return res.data.data
+    },
+  })
+
+  const mutation = useMutation({
+    mutationFn: () => api.post(`/fields/${fieldId}/reviews`, { rating, comment }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['reviews', fieldId] })
+      qc.invalidateQueries({ queryKey: ['field', fieldId] })
+      setShowForm(false)
+      setComment('')
+      setRating(5)
+    },
+  })
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="section-title">Отзывы {reviews?.length ? `(${reviews.length})` : ''}</h3>
+        {userId && !showForm && (
+          <button onClick={() => setShowForm(true)} className="text-primary text-sm font-medium">
+            + Оставить
+          </button>
+        )}
+      </div>
+
+      {showForm && (
+        <div className="glass-card p-4 mb-3 flex flex-col gap-3">
+          <div className="flex gap-1">
+            {[1,2,3,4,5].map(s => (
+              <button key={s} onClick={() => setRating(s)}>
+                <StarIcon className={`w-8 h-8 ${s <= rating ? 'text-yellow-400' : 'text-white/20'}`} />
+              </button>
+            ))}
+          </div>
+          <textarea
+            value={comment}
+            onChange={e => setComment(e.target.value)}
+            placeholder="Расскажите о вашем опыте..."
+            rows={3}
+            className="bg-dark border border-surface-border rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-white/30 outline-none resize-none"
+          />
+          {mutation.isError && <p className="text-red-400 text-xs">Вы должны завершить бронь, чтобы оставить отзыв.</p>}
+          <div className="flex gap-2">
+            <button onClick={() => setShowForm(false)} className="flex-1 py-2.5 rounded-xl border border-surface-border text-white/50 text-sm">Отмена</button>
+            <button onClick={() => mutation.mutate()} disabled={mutation.isPending} className="flex-1 neon-btn text-sm disabled:opacity-40">
+              {mutation.isPending ? '...' : 'Отправить'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {reviews?.length === 0 && !showForm && (
+        <p className="text-white/40 text-sm">Ещё нет отзывов. Будьте первым!</p>
+      )}
+
+      <div className="flex flex-col gap-3">
+        {reviews?.map(r => (
+          <div key={r.id} className="glass-card p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center text-primary font-bold text-sm flex-shrink-0 overflow-hidden">
+                {r.user.avatar ? <img src={r.user.avatar} alt="" className="w-full h-full object-cover" /> : r.user.firstName[0]}
+              </div>
+              <div className="flex-1">
+                <p className="text-white text-sm font-medium">{r.user.firstName} {r.user.lastName ?? ''}</p>
+                <div className="flex gap-0.5">{[1,2,3,4,5].map(s => <StarIcon key={s} className={`w-3 h-3 ${s <= r.rating ? 'text-yellow-400' : 'text-white/20'}`} />)}</div>
+              </div>
+            </div>
+            {r.comment && <p className="text-white/60 text-sm">{r.comment}</p>}
+          </div>
+        ))}
       </div>
     </div>
   )

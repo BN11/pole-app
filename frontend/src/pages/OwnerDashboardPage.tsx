@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useNavigate } from 'react-router-dom'
 import { api, formatPrice, SPORT_ICONS } from '@/utils/api'
 import type { Field, Booking, OwnerStats } from '@/types'
 import { useAuthStore } from '@/store/useAuthStore'
@@ -129,6 +130,7 @@ function WeeklyChart({ data }: { data?: { day: string; amount: number }[] }) {
 }
 
 function OwnerFieldsList({ fields, isLoading }: { fields?: Field[]; isLoading: boolean }) {
+  const navigate = useNavigate()
   useQueryClient()
 
   if (isLoading) return <div className="h-32 rounded-2xl bg-surface animate-pulse" />
@@ -167,7 +169,7 @@ function OwnerFieldsList({ fields, isLoading }: { fields?: Field[]; isLoading: b
       ))}
 
       {/* Add field button */}
-      <button className="neon-btn w-full text-sm">+ Добавить поле</button>
+      <button onClick={() => navigate('/fields/add')} className="neon-btn w-full text-sm">+ Добавить поле</button>
     </div>
   )
 }

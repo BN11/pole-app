@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { prisma } from '../index'
+import { notifyFieldApproved, notifyFieldRejected } from '../utils/notify'
 
 async function requireSuperAdmin(request: any, reply: any) {
   await request.jwtVerify()
@@ -36,14 +37,16 @@ export async function adminRoutes(app: FastifyInstance) {
   // PATCH /api/admin/fields/:id/approve
   app.patch('/fields/:id/approve', { preHandler: [requireSuperAdmin] }, async (request, reply) => {
     const { id } = request.params as { id: string }
-    const field = await prisma.field.update({ where: { id }, data: { status: 'APPROVED' } })
+    const field = await prisma.field.update({ where: { id }, data: { status: 'APPROVED' }, include: { owner: true } })
+    notifyFieldApproved((field as any).owner.telegramId, field.name)
     return reply.send({ data: field })
   })
 
   // PATCH /api/admin/fields/:id/reject
   app.patch('/fields/:id/reject', { preHandler: [requireSuperAdmin] }, async (request, reply) => {
     const { id } = request.params as { id: string }
-    const field = await prisma.field.update({ where: { id }, data: { status: 'REJECTED' } })
+    const field = await prisma.field.update({ where: { id }, data: { status: 'REJECTED' }, include: { owner: true } })
+    notifyFieldRejected((field as any).owner.telegramId, field.name)
     return reply.send({ data: field })
   })
 
@@ -68,5 +71,19 @@ export async function adminRoutes(app: FastifyInstance) {
     const { id } = request.params as { id: string }
     const tournament = await prisma.tournament.update({ where: { id }, data: { status: 'CANCELLED' } })
     return reply.send({ data: tournament })
+  })
+
+  // GET /api/admin/users
+  app.get('/users', { preHandler: [requireSuperAdmin] }, async (_request, reply) => {
+    const users = await prisma.user.findMany({ orderBy: { createdAt: 'desc' } })
+    return reply.send({ data: users })
+  })
+
+  // PATCH /api/admin/users/:id/role
+  app.patch('/users/:id/role', { preHandler: [requireSuperAdmin] }, async (request, reply) => {
+    const { id } = request.params as { id: string }
+    const { role } = request.body as { role: string }
+    const user = await prisma.user.update({ where: { id }, data: { role: role as any } })
+    return reply.send({ data: user })
   })
 }

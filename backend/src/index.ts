@@ -10,6 +10,9 @@ import { tournamentRoutes } from './routes/tournaments'
 import { adminRoutes } from './routes/admin'
 import { ownerRoutes } from './routes/owner'
 import { telegramRoutes } from './routes/telegram'
+import { uploadRoutes } from './routes/upload'
+import { reviewRoutes } from './routes/reviews'
+import { paymentRoutes } from './routes/payment'
 
 export const prisma = new PrismaClient()
 
@@ -46,6 +49,9 @@ async function main() {
   await app.register(adminRoutes,      { prefix: '/api/admin' })
   await app.register(ownerRoutes,      { prefix: '/api/owner' })
   await app.register(telegramRoutes,   { prefix: '/api/telegram' })
+  await app.register(uploadRoutes,     { prefix: '/api/upload' })
+  await app.register(reviewRoutes,     { prefix: '/api/fields' })
+  await app.register(paymentRoutes,    { prefix: '/api/payment' })
 
   // Health check
   app.get('/health', async () => ({ status: 'ok', timestamp: new Date().toISOString() }))

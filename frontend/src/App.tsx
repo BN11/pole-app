@@ -7,10 +7,14 @@ import { HomePage } from '@/pages/HomePage'
 import { FieldsPage } from '@/pages/FieldsPage'
 import { FieldDetailPage } from '@/pages/FieldDetailPage'
 import { TournamentsPage } from '@/pages/TournamentsPage'
+import { TournamentDetailPage } from '@/pages/TournamentDetailPage'
 import { BookingsPage } from '@/pages/BookingsPage'
+import { BookingConfirmPage } from '@/pages/BookingConfirmPage'
 import { ProfilePage } from '@/pages/ProfilePage'
 import { OwnerDashboardPage } from '@/pages/OwnerDashboardPage'
 import { AdminPanelPage } from '@/pages/AdminPanelPage'
+import { AddFieldPage } from '@/pages/AddFieldPage'
+import { AddTournamentPage } from '@/pages/AddTournamentPage'
 
 function AppContent() {
   const { user, setUser, setToken, setLoading, token } = useAuthStore()
@@ -39,24 +43,38 @@ function AppContent() {
 
   const isOwner = user?.role === 'FIELD_OWNER'
   const isAdmin = user?.role === 'SUPER_ADMIN'
+  const isOperator = user?.role === 'TOURNAMENT_OPERATOR'
 
   return (
     <div className="relative">
       <Routes>
-        <Route path="/"            element={<HomePage />} />
-        <Route path="/fields"      element={<FieldsPage />} />
-        <Route path="/fields/:id"  element={<FieldDetailPage />} />
-        <Route path="/tournaments" element={<TournamentsPage />} />
-        <Route path="/bookings"    element={<BookingsPage />} />
-        <Route path="/profile"     element={<ProfilePage />} />
+        {/* Public */}
+        <Route path="/"                  element={<HomePage />} />
+        <Route path="/fields"            element={<FieldsPage />} />
+        <Route path="/fields/:id"        element={<FieldDetailPage />} />
+        <Route path="/tournaments"       element={<TournamentsPage />} />
+        <Route path="/tournaments/:id"   element={<TournamentDetailPage />} />
+        <Route path="/bookings"          element={<BookingsPage />} />
+        <Route path="/booking/confirm"   element={<BookingConfirmPage />} />
+        <Route path="/profile"           element={<ProfilePage />} />
 
-        {/* Owner routes */}
+        {/* Owner / Admin */}
         <Route
           path="/dashboard"
           element={isOwner || isAdmin ? <OwnerDashboardPage /> : <Navigate to="/" replace />}
         />
+        <Route
+          path="/fields/add"
+          element={isOwner || isAdmin ? <AddFieldPage /> : <Navigate to="/" replace />}
+        />
 
-        {/* Admin routes */}
+        {/* Operator / Admin */}
+        <Route
+          path="/tournaments/add"
+          element={isOperator || isAdmin ? <AddTournamentPage /> : <Navigate to="/" replace />}
+        />
+
+        {/* Admin only */}
         <Route
           path="/admin"
           element={isAdmin ? <AdminPanelPage /> : <Navigate to="/" replace />}

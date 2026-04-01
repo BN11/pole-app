@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { prisma } from '../index'
+import { notifyBookingCreated, notifyBookingConfirmed, notifyBookingCancelled } from '../utils/notify'
 
 export async function bookingRoutes(app: FastifyInstance) {
   // GET /api/bookings (my bookings)
@@ -63,7 +64,18 @@ export async function bookingRoutes(app: FastifyInstance) {
         status: 'PENDING',
         paymentStatus: 'PENDING',
       },
-      include: { field: true },
+      include: { field: { include: { owner: true } }, user: true },
+    })
+
+    // Telegram notifications (non-blocking)
+    notifyBookingCreated({
+      userTelegramId: booking.user.telegramId,
+      ownerTelegramId: (booking.field as any).owner.telegramId,
+      fieldName: booking.field.name,
+      date: booking.date,
+      startTime: booking.startTime,
+      endTime: booking.endTime,
+      totalPrice: booking.totalPrice,
     })
 
     return reply.status(201).send({ data: booking })
@@ -85,6 +97,14 @@ export async function bookingRoutes(app: FastifyInstance) {
     const updated = await prisma.booking.update({
       where: { id },
       data: { status: 'CONFIRMED' },
+      include: { user: true, field: true },
+    })
+    notifyBookingConfirmed({
+      userTelegramId: updated.user.telegramId,
+      fieldName: updated.field.name,
+      date: updated.date,
+      startTime: updated.startTime,
+      endTime: updated.endTime,
     })
     return reply.send({ data: updated })
   })
@@ -102,6 +122,14 @@ export async function bookingRoutes(app: FastifyInstance) {
     const updated = await prisma.booking.update({
       where: { id },
       data: { status: 'CANCELLED' },
+      include: { user: true, field: true },
+    })
+    notifyBookingCancelled({
+      userTelegramId: updated.user.telegramId,
+      fieldName: updated.field.name,
+      date: updated.date,
+      startTime: updated.startTime,
+      endTime: updated.endTime,
     })
     return reply.send({ data: updated })
   })
