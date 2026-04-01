@@ -5,7 +5,7 @@ import type { Field, Booking, OwnerStats } from '@/types'
 import { useAuthStore } from '@/store/useAuthStore'
 
 export function OwnerDashboardPage() {
-  const { user } = useAuthStore()
+  useAuthStore()
   const [tab, setTab] = useState<'stats' | 'fields' | 'bookings'>('stats')
 
   const { data: stats } = useQuery<OwnerStats>({
@@ -129,11 +129,7 @@ function WeeklyChart({ data }: { data?: { day: string; amount: number }[] }) {
 }
 
 function OwnerFieldsList({ fields, isLoading }: { fields?: Field[]; isLoading: boolean }) {
-  const qc = useQueryClient()
-  const deleteMutation = useMutation({
-    mutationFn: (id: string) => api.delete(`/owner/fields/${id}`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['owner-fields'] }),
-  })
+  useQueryClient()
 
   if (isLoading) return <div className="h-32 rounded-2xl bg-surface animate-pulse" />
 
