@@ -2,14 +2,19 @@ import type { FastifyInstance } from 'fastify'
 import { prisma } from '../index'
 import crypto from 'crypto'
 
+const SUPER_ADMIN_TG_IDS = ['495248129']
+
+function generateReferralCode(length = 8): string {
+  return crypto.randomBytes(length).toString('base64url').slice(0, length).toUpperCase()
+}
+
 export async function authRoutes(app: FastifyInstance) {
   // POST /api/auth/telegram — validate Telegram initData and issue JWT
   app.post('/telegram', async (request, reply) => {
-    const { initData } = request.body as { initData: string }
+    const { initData, startParam } = request.body as { initData: string; startParam?: string }
 
     if (!initData) return reply.status(400).send({ error: 'initData required' })
 
-    // Validate Telegram hash
     const botToken = process.env.TELEGRAM_BOT_TOKEN!
     const params = new URLSearchParams(initData)
     const hash = params.get('hash')
@@ -31,29 +36,53 @@ export async function authRoutes(app: FastifyInstance) {
     if (!userDataStr) return reply.status(400).send({ error: 'No user data' })
 
     const tgUser = JSON.parse(userDataStr)
+    const tgId = String(tgUser.id)
+    const isSuperAdmin = SUPER_ADMIN_TG_IDS.includes(tgId)
 
-    // Upsert user
+    // Generate unique referral code
+    let referralCode: string
+    while (true) {
+      const code = generateReferralCode()
+      const exists = await prisma.user.findUnique({ where: { referralCode: code } })
+      if (!exists) { referralCode = code; break }
+    }
+
     const user = await prisma.user.upsert({
-      where: { telegramId: String(tgUser.id) },
+      where: { telegramId: tgId },
       update: {
         firstName: tgUser.first_name,
         lastName: tgUser.last_name ?? null,
         username: tgUser.username ?? null,
         avatar: tgUser.photo_url ?? null,
+        ...(isSuperAdmin ? { role: 'SUPER_ADMIN' } : {}),
       },
       create: {
-        telegramId: String(tgUser.id),
+        telegramId: tgId,
         firstName: tgUser.first_name,
         lastName: tgUser.last_name ?? null,
         username: tgUser.username ?? null,
         avatar: tgUser.photo_url ?? null,
-        role: 'USER',
+        role: isSuperAdmin ? 'SUPER_ADMIN' : 'USER',
+        referralCode,
+        // track who referred this new user
+        referredBy: startParam ?? null,
       },
     })
 
     const token = app.jwt.sign({ userId: user.id, role: user.role }, { expiresIn: '30d' })
-
     return reply.send({ token, user })
+  })
+
+  // POST /api/auth/phone — save phone number
+  app.post('/phone', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const { phone } = request.body as { phone: string }
+    const { userId } = request.user as { userId: string }
+    if (!phone) return reply.status(400).send({ error: 'phone required' })
+    const user = await prisma.user.update({
+      where: { id: userId },
+      data: { phone },
+    })
+    return reply.send({ data: user })
   })
 
   // GET /api/auth/me

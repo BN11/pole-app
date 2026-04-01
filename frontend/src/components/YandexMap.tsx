@@ -1,12 +1,6 @@
 import { useEffect, useRef } from 'react'
 import type { Field } from '@/types'
 
-declare global {
-  interface Window {
-    ymaps: any
-    ymapsReady: boolean
-  }
-}
 
 const YANDEX_API_KEY = import.meta.env.VITE_YANDEX_MAPS_KEY || ''
 

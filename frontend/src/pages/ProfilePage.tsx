@@ -1,3 +1,5 @@
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/useAuthStore'
 import { ArrowRightIcon } from '@/components/ui/Icons'
 
@@ -5,14 +7,38 @@ const MENU_ITEMS = [
   { icon: '📋', label: 'Мои брони', path: '/bookings' },
   { icon: '🏆', label: 'Мои турниры', path: '/tournaments' },
   { icon: '⭐', label: 'Мои отзывы', path: '/reviews' },
-  { icon: '💳', label: 'Способы оплаты', path: '/payments' },
-  { icon: '🔔', label: 'Уведомления', path: '/notifications' },
-  { icon: '🛡️', label: 'Конфиденциальность', path: '/privacy' },
   { icon: '❓', label: 'Поддержка', path: '/support' },
 ]
 
 export function ProfilePage() {
-  const { user, logout } = useAuthStore()
+  const { user } = useAuthStore()
+  const navigate = useNavigate()
+  const [copied, setCopied] = useState(false)
+
+  const botUsername = import.meta.env.VITE_BOT_USERNAME || 'pole_app_bot'
+  const referralLink = user?.referralCode
+    ? `https://t.me/${botUsername}?startapp=${user.referralCode}`
+    : null
+
+  const handleCopyReferral = () => {
+    if (!referralLink) return
+    navigator.clipboard.writeText(referralLink).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
+
+  const handleShareReferral = () => {
+    if (!referralLink) return
+    const twa = window.Telegram?.WebApp
+    if (twa?.openTelegramLink) {
+      twa.openTelegramLink(
+        `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent('Бронируй спортивные поля в ПОЛЕ! 🏟️')}`
+      )
+    } else {
+      handleCopyReferral()
+    }
+  }
 
   return (
     <div className="flex flex-col min-h-screen pb-24 px-4 pt-4">
@@ -34,6 +60,9 @@ export function ProfilePage() {
           {user?.username && (
             <p className="text-white/50 text-sm">@{user.username}</p>
           )}
+          {user?.phone && (
+            <p className="text-white/40 text-xs mt-0.5">📱 {user.phone}</p>
+          )}
           <span className="inline-block mt-1.5 text-xs bg-primary/10 text-primary border border-primary/20 px-2.5 py-0.5 rounded-full font-medium">
             POLE USER
           </span>
@@ -43,9 +72,9 @@ export function ProfilePage() {
       {/* Stats */}
       <div className="grid grid-cols-3 gap-3 mb-4">
         {[
-          { label: 'Броней', value: '12' },
-          { label: 'Рейтинг', value: '4.9' },
-          { label: 'Турниры', value: '3' },
+          { label: 'Броней', value: '0' },
+          { label: 'Рейтинг', value: '—' },
+          { label: 'Турниры', value: '0' },
         ].map(({ label, value }) => (
           <div key={label} className="glass-card p-3 text-center">
             <p className="text-xl font-black text-white">{value}</p>
@@ -53,6 +82,36 @@ export function ProfilePage() {
           </div>
         ))}
       </div>
+
+      {/* Referral */}
+      {referralLink && (
+        <div className="glass-card p-4 mb-4">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-xl">🎁</span>
+            <div>
+              <p className="text-white font-semibold text-sm">Реферальная ссылка</p>
+              <p className="text-white/40 text-xs">Приглашайте друзей в ПОЛЕ</p>
+            </div>
+          </div>
+          <div className="bg-dark rounded-xl px-3 py-2.5 flex items-center gap-2 mb-3 border border-surface-border">
+            <p className="text-white/50 text-xs flex-1 truncate font-mono">{referralLink}</p>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={handleCopyReferral}
+              className="flex-1 py-2.5 rounded-xl border border-surface-border text-white/60 text-sm font-medium transition-all active:bg-surface-hover"
+            >
+              {copied ? '✅ Скопировано' : '📋 Копировать'}
+            </button>
+            <button
+              onClick={handleShareReferral}
+              className="flex-1 neon-btn text-sm"
+            >
+              📤 Поделиться
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Menu */}
       <div className="glass-card overflow-hidden mb-4">
@@ -70,13 +129,29 @@ export function ProfilePage() {
         ))}
       </div>
 
-      {/* Logout */}
-      <button
-        onClick={logout}
-        className="w-full py-4 rounded-2xl border border-red-500/30 text-red-400 font-semibold text-sm active:bg-red-500/10 transition-colors"
-      >
-        Выйти
-      </button>
+      {/* Admin panel link */}
+      {(user?.role === 'SUPER_ADMIN' || user?.role === 'FIELD_OWNER') && (
+        <div className="glass-card overflow-hidden mb-4">
+          {user.role === 'SUPER_ADMIN' && (
+            <button
+              onClick={() => navigate('/admin')}
+              className="w-full flex items-center gap-3 px-4 py-4 active:bg-surface-hover transition-colors border-b border-surface-border"
+            >
+              <span className="text-xl w-8">🛡️</span>
+              <span className="flex-1 text-left text-primary text-sm font-semibold">Админ панель</span>
+              <ArrowRightIcon className="w-4 h-4 text-primary/50" />
+            </button>
+          )}
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="w-full flex items-center gap-3 px-4 py-4 active:bg-surface-hover transition-colors"
+          >
+            <span className="text-xl w-8">🏟️</span>
+            <span className="flex-1 text-left text-white text-sm font-medium">Кабинет владельца</span>
+            <ArrowRightIcon className="w-4 h-4 text-white/30" />
+          </button>
+        </div>
+      )}
     </div>
   )
 }

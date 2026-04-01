@@ -9,6 +9,9 @@ export interface User {
   lastName?: string
   username?: string
   avatar?: string
+  phone?: string
+  referralCode?: string
+  referredBy?: string
   role: UserRole
   createdAt: string
 }
@@ -175,6 +178,7 @@ declare global {
         }
         initData: string
         initDataUnsafe: {
+          start_param?: string
           user?: {
             id: number
             first_name: string
@@ -185,7 +189,11 @@ declare global {
         }
         colorScheme: 'light' | 'dark'
         themeParams: Record<string, string>
+        openTelegramLink: (url: string) => void
+        requestContact: (callback: (ok: boolean, data?: { contact?: { phone_number: string; first_name: string; user_id?: number } }) => void) => void
       }
     }
+    ymaps?: any
+    ymapsReady?: boolean
   }
 }
