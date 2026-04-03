@@ -65,8 +65,8 @@ function BookingCard({ booking }: { booking: Booking }) {
     <div className="glass-card p-4 flex gap-3">
       {/* Field photo */}
       <div className="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 bg-surface-hover">
-        {booking.field.photos[0] ? (
-          <img src={booking.field.photos[0]} alt={booking.field.name} className="w-full h-full object-cover" />
+        {booking.field.photos?.[0] ? (
+          <img src={booking.field.photos?.[0]} alt={booking.field.name} className="w-full h-full object-cover" />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-2xl">
             {SPORT_ICONS[booking.field.sportTypes[0]] || '🏟️'}

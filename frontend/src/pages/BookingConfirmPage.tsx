@@ -2,7 +2,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { useMutation } from '@tanstack/react-query'
 import { api, formatPrice, SPORT_ICONS } from '@/utils/api'
 import type { Field, PaymentMethod } from '@/types'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { format } from 'date-fns'
 import { ru } from 'date-fns/locale'
 
@@ -56,10 +56,11 @@ export function BookingConfirmPage() {
     },
   })
 
-  if (!state) {
-    navigate('/fields')
-    return null
-  }
+  useEffect(() => {
+    if (!state) navigate('/fields')
+  }, [])
+
+  if (!state) return null
 
   const { field, date, startTime, endTime, durationHours, totalPrice } = state
 
@@ -82,7 +83,7 @@ export function BookingConfirmPage() {
         {/* Field info */}
         <div className="glass-card p-4 flex gap-3">
           <div className="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 bg-surface-hover">
-            {field.photos[0] ? (
+            {field.photos?.[0] ? (
               <img src={field.photos[0]} alt={field.name} className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-2xl">

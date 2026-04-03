@@ -1,5 +1,27 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Component } from 'react'
+import type { ReactNode } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+
+class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
+  state = { error: null }
+  static getDerivedStateFromError(error: Error) { return { error } }
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="flex flex-col items-center justify-center min-h-screen px-6 text-center">
+          <div className="text-4xl mb-4">⚠️</div>
+          <p className="text-white font-semibold mb-2">Что-то пошло не так</p>
+          <p className="text-white/50 text-sm mb-6">{(this.state.error as Error).message}</p>
+          <button
+            onClick={() => { this.setState({ error: null }); window.location.href = '/' }}
+            className="neon-btn"
+          >На главную</button>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
 import { useAuthStore } from '@/store/useAuthStore'
 import { api } from '@/utils/api'
 import { BottomNav } from '@/components/layout/BottomNav'
@@ -101,8 +123,10 @@ function AppContent() {
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <AppContent />
-    </BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <AppContent />
+      </BrowserRouter>
+    </ErrorBoundary>
   )
 }

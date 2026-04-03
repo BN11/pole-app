@@ -14,8 +14,8 @@ export function FieldCard({ field, variant = 'large' }: FieldCardProps) {
     return (
       <Link to={`/fields/${field.id}`} className="glass-card-hover flex gap-3 p-3">
         <div className="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 bg-surface-hover">
-          {field.photos[0] ? (
-            <img src={field.photos[0]} alt={field.name} className="w-full h-full object-cover" />
+          {field.photos?.[0] ? (
+            <img src={field.photos?.[0]} alt={field.name} className="w-full h-full object-cover" />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-2xl">
               {SPORT_ICONS[field.sportTypes[0]] || '🏟️'}
@@ -60,9 +60,9 @@ export function FieldCard({ field, variant = 'large' }: FieldCardProps) {
     >
       {/* Background image */}
       <div className="absolute inset-0 bg-surface-hover">
-        {field.photos[0] ? (
+        {field.photos?.[0] ? (
           <img
-            src={field.photos[0]}
+            src={field.photos?.[0]}
             alt={field.name}
             className="w-full h-full object-cover"
           />
