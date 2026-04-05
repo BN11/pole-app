@@ -80,7 +80,7 @@ export function TournamentsPage() {
           <p className="text-white/50 text-xs mt-0.5">Подайте заявку — мы поможем</p>
         </div>
         <Link
-          to="/tournaments/apply"
+          to="/tournaments/add"
           className="bg-primary text-dark text-sm font-bold px-4 py-2.5 rounded-xl flex-shrink-0"
         >
           Подать заявку

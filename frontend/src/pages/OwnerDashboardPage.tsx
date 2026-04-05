@@ -131,7 +131,11 @@ function WeeklyChart({ data }: { data?: { day: string; amount: number }[] }) {
 
 function OwnerFieldsList({ fields, isLoading }: { fields?: Field[]; isLoading: boolean }) {
   const navigate = useNavigate()
-  useQueryClient()
+  const qc = useQueryClient()
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => api.delete(`/owner/fields/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['owner-fields'] }),
+  })
 
   if (isLoading) return <div className="h-32 rounded-2xl bg-surface animate-pulse" />
 
@@ -145,30 +149,55 @@ function OwnerFieldsList({ fields, isLoading }: { fields?: Field[]; isLoading: b
         </div>
       )}
       {fields?.map((field) => (
-        <div key={field.id} className="glass-card p-4 flex gap-3 items-center">
-          <div className="w-12 h-12 rounded-xl bg-surface-hover flex items-center justify-center text-xl flex-shrink-0">
-            {SPORT_ICONS[field.sportTypes[0]] || '🏟️'}
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-semibold text-white text-sm truncate">{field.name}</p>
-            <p className="text-white/50 text-xs truncate">{field.address}</p>
-            <div className="flex items-center gap-2 mt-1">
-              <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${
-                field.status === 'APPROVED'
-                  ? 'text-primary bg-primary/10'
-                  : field.status === 'PENDING'
-                  ? 'text-yellow-400 bg-yellow-400/10'
-                  : 'text-red-400 bg-red-400/10'
-              }`}>
-                {field.status === 'APPROVED' ? 'Одобрено' : field.status === 'PENDING' ? 'На проверке' : 'Отклонено'}
-              </span>
-              <span className="text-primary text-xs font-bold">{formatPrice(field.pricePerHour)}/ч</span>
+        <div key={field.id} className="glass-card p-4">
+          <div className="flex gap-3 items-start">
+            <div className="w-12 h-12 rounded-xl bg-surface-hover flex items-center justify-center text-xl flex-shrink-0 overflow-hidden">
+              {field.photos?.[0]
+                ? <img src={field.photos[0]} alt="" className="w-full h-full object-cover" />
+                : SPORT_ICONS[field.sportTypes[0]] || '🏟️'}
             </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-white text-sm truncate">{field.name}</p>
+              <p className="text-white/50 text-xs truncate">{field.address}</p>
+              <div className="flex items-center gap-2 mt-1">
+                <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${
+                  field.status === 'APPROVED'
+                    ? 'text-primary bg-primary/10'
+                    : field.status === 'PENDING'
+                    ? 'text-yellow-400 bg-yellow-400/10'
+                    : 'text-red-400 bg-red-400/10'
+                }`}>
+                  {field.status === 'APPROVED' ? 'Одобрено' : field.status === 'PENDING' ? 'На проверке' : 'Отклонено'}
+                </span>
+                <span className="text-primary text-xs font-bold">{formatPrice(field.pricePerHour)}/ч</span>
+              </div>
+            </div>
+          </div>
+          <div className="flex gap-2 mt-3">
+            <button
+              onClick={() => navigate(`/fields/${field.id}/edit`)}
+              className="flex-1 py-2 rounded-xl border border-surface-border text-white/60 text-xs font-medium active:bg-surface-hover transition-colors"
+            >
+              ✏️ Редактировать
+            </button>
+            <button
+              onClick={() => {
+                const twa = window.Telegram?.WebApp
+                if (twa?.showConfirm) {
+                  twa.showConfirm('Удалить поле?', (ok) => { if (ok) deleteMutation.mutate(field.id) })
+                } else {
+                  deleteMutation.mutate(field.id)
+                }
+              }}
+              disabled={deleteMutation.isPending}
+              className="px-4 py-2 rounded-xl border border-red-400/20 text-red-400 text-xs font-medium active:bg-red-400/10 transition-colors disabled:opacity-40"
+            >
+              {deleteMutation.isPending ? '...' : '🗑️'}
+            </button>
           </div>
         </div>
       ))}
 
-      {/* Add field button */}
       <button onClick={() => navigate('/fields/add')} className="neon-btn w-full text-sm">+ Добавить поле</button>
     </div>
   )

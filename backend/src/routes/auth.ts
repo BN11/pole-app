@@ -92,4 +92,17 @@ export async function authRoutes(app: FastifyInstance) {
     if (!user) return reply.status(404).send({ error: 'User not found' })
     return reply.send({ data: user })
   })
+
+  // GET /api/auth/stats — user's booking summary for profile page
+  app.get('/stats', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const { userId } = request.user as { userId: string }
+    const now = new Date().toISOString().split('T')[0]
+    const [bookingCount, upcomingBookings] = await Promise.all([
+      prisma.booking.count({ where: { userId } }),
+      prisma.booking.count({
+        where: { userId, date: { gte: now }, status: { in: ['PENDING', 'CONFIRMED'] } },
+      }),
+    ])
+    return reply.send({ data: { bookingCount, upcomingBookings } })
+  })
 }

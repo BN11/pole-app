@@ -1,6 +1,12 @@
 import type { FastifyInstance } from 'fastify'
 import { prisma } from '../index'
 
+function toFieldDto(field: any) {
+  if (!field) return field
+  const { hasLockerRoom, hasParking, hasLighting, hasCafeteria, hasShower, hasBallRent } = field
+  return { ...field, amenities: { hasLockerRoom, hasParking, hasLighting, hasCafeteria, hasShower, hasBallRent } }
+}
+
 export async function ownerRoutes(app: FastifyInstance) {
   // GET /api/owner/stats
   app.get('/stats', { preHandler: [app.authenticate] }, async (request, reply) => {
@@ -88,7 +94,7 @@ export async function ownerRoutes(app: FastifyInstance) {
       where: { ownerId: userId },
       orderBy: { createdAt: 'desc' },
     })
-    return reply.send({ data: fields })
+    return reply.send({ data: fields.map(toFieldDto) })
   })
 
   // GET /api/owner/bookings

@@ -1,19 +1,23 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '@/store/useAuthStore'
+import { api } from '@/utils/api'
 import { ArrowRightIcon } from '@/components/ui/Icons'
-
-const MENU_ITEMS = [
-  { icon: '📋', label: 'Мои брони', path: '/bookings' },
-  { icon: '🏆', label: 'Мои турниры', path: '/tournaments' },
-  { icon: '⭐', label: 'Мои отзывы', path: '/reviews' },
-  { icon: '❓', label: 'Поддержка', path: '/support' },
-]
 
 export function ProfilePage() {
   const { user } = useAuthStore()
   const navigate = useNavigate()
   const [copied, setCopied] = useState(false)
+
+  const { data: stats } = useQuery<{ bookingCount: number; upcomingBookings: number }>({
+    queryKey: ['user-stats'],
+    queryFn: async () => {
+      const res = await api.get('/auth/stats')
+      return res.data.data
+    },
+    enabled: !!user,
+  })
 
   const botUsername = import.meta.env.VITE_BOT_USERNAME || 'pole_app_bot'
   const referralLink = user?.referralCode
@@ -40,9 +44,15 @@ export function ProfilePage() {
     }
   }
 
+  const roleLabel =
+    user?.role === 'SUPER_ADMIN' ? 'Супер Админ' :
+    user?.role === 'FIELD_OWNER' ? 'Владелец поля' :
+    user?.role === 'TOURNAMENT_OPERATOR' ? 'Оператор турниров' :
+    'POLE USER'
+
   return (
     <div className="flex flex-col min-h-screen pb-24 px-4 pt-4">
-      {/* User info */}
+      {/* User info card */}
       <div className="glass-card p-5 flex items-center gap-4 mb-4">
         <div className="w-16 h-16 rounded-2xl overflow-hidden bg-primary/20 flex items-center justify-center flex-shrink-0">
           {user?.avatar ? (
@@ -54,7 +64,7 @@ export function ProfilePage() {
           )}
         </div>
         <div className="flex-1 min-w-0">
-          <h2 className="text-lg font-bold text-white">
+          <h2 className="text-lg font-bold text-white truncate">
             {user?.firstName} {user?.lastName}
           </h2>
           {user?.username && (
@@ -64,23 +74,25 @@ export function ProfilePage() {
             <p className="text-white/40 text-xs mt-0.5">📱 {user.phone}</p>
           )}
           <span className="inline-block mt-1.5 text-xs bg-primary/10 text-primary border border-primary/20 px-2.5 py-0.5 rounded-full font-medium">
-            POLE USER
+            {roleLabel}
           </span>
         </div>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-3 mb-4">
-        {[
-          { label: 'Броней', value: '0' },
-          { label: 'Рейтинг', value: '—' },
-          { label: 'Турниры', value: '0' },
-        ].map(({ label, value }) => (
-          <div key={label} className="glass-card p-3 text-center">
-            <p className="text-xl font-black text-white">{value}</p>
-            <p className="text-white/50 text-xs mt-0.5">{label}</p>
-          </div>
-        ))}
+        <div className="glass-card p-3 text-center">
+          <p className="text-xl font-black text-white">{stats?.bookingCount ?? '—'}</p>
+          <p className="text-white/50 text-xs mt-0.5">Всего броней</p>
+        </div>
+        <div className="glass-card p-3 text-center">
+          <p className="text-xl font-black text-primary">{stats?.upcomingBookings ?? '—'}</p>
+          <p className="text-white/50 text-xs mt-0.5">Предстоящих</p>
+        </div>
+        <div className="glass-card p-3 text-center">
+          <p className="text-xl font-black text-white">0</p>
+          <p className="text-white/50 text-xs mt-0.5">Турниры</p>
+        </div>
       </div>
 
       {/* Referral */}
@@ -113,13 +125,17 @@ export function ProfilePage() {
         </div>
       )}
 
-      {/* Menu */}
+      {/* Quick menu */}
       <div className="glass-card overflow-hidden mb-4">
-        {MENU_ITEMS.map(({ icon, label }, i) => (
+        {[
+          { icon: '📋', label: 'Мои брони', path: '/bookings' },
+          { icon: '🏆', label: 'Турниры', path: '/tournaments' },
+        ].map(({ icon, label, path }, i, arr) => (
           <button
             key={label}
+            onClick={() => navigate(path)}
             className={`w-full flex items-center gap-3 px-4 py-4 active:bg-surface-hover transition-colors ${
-              i < MENU_ITEMS.length - 1 ? 'border-b border-surface-border' : ''
+              i < arr.length - 1 ? 'border-b border-surface-border' : ''
             }`}
           >
             <span className="text-xl w-8">{icon}</span>
@@ -148,8 +164,8 @@ export function ProfilePage() {
         </div>
       )}
 
-      {/* Admin panel link */}
-      {(user?.role === 'SUPER_ADMIN' || user?.role === 'FIELD_OWNER') && (
+      {/* Owner / Admin panel links */}
+      {(user?.role === 'SUPER_ADMIN' || user?.role === 'FIELD_OWNER' || user?.role === 'TOURNAMENT_OPERATOR') && (
         <div className="glass-card overflow-hidden mb-4">
           {user.role === 'SUPER_ADMIN' && (
             <button
@@ -157,18 +173,32 @@ export function ProfilePage() {
               className="w-full flex items-center gap-3 px-4 py-4 active:bg-surface-hover transition-colors border-b border-surface-border"
             >
               <span className="text-xl w-8">🛡️</span>
-              <span className="flex-1 text-left text-primary text-sm font-semibold">Админ панель</span>
+              <span className="flex-1 text-left text-primary text-sm font-semibold">Панель администратора</span>
               <ArrowRightIcon className="w-4 h-4 text-primary/50" />
             </button>
           )}
-          <button
-            onClick={() => navigate('/dashboard')}
-            className="w-full flex items-center gap-3 px-4 py-4 active:bg-surface-hover transition-colors"
-          >
-            <span className="text-xl w-8">🏟️</span>
-            <span className="flex-1 text-left text-white text-sm font-medium">Кабинет владельца</span>
-            <ArrowRightIcon className="w-4 h-4 text-white/30" />
-          </button>
+          {(user.role === 'FIELD_OWNER' || user.role === 'SUPER_ADMIN') && (
+            <button
+              onClick={() => navigate('/dashboard')}
+              className={`w-full flex items-center gap-3 px-4 py-4 active:bg-surface-hover transition-colors ${
+                user.role === 'SUPER_ADMIN' ? '' : ''
+              }`}
+            >
+              <span className="text-xl w-8">🏟️</span>
+              <span className="flex-1 text-left text-white text-sm font-medium">Кабинет владельца</span>
+              <ArrowRightIcon className="w-4 h-4 text-white/30" />
+            </button>
+          )}
+          {user.role === 'TOURNAMENT_OPERATOR' && (
+            <button
+              onClick={() => navigate('/tournaments/add')}
+              className="w-full flex items-center gap-3 px-4 py-4 active:bg-surface-hover transition-colors border-t border-surface-border"
+            >
+              <span className="text-xl w-8">🏆</span>
+              <span className="flex-1 text-left text-white text-sm font-medium">Создать турнир</span>
+              <ArrowRightIcon className="w-4 h-4 text-white/30" />
+            </button>
+          )}
         </div>
       )}
     </div>

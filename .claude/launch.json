@@ -4,6 +4,7 @@
     {
       "name": "pole-frontend",
       "runtimeExecutable": "/Users/feruzuktamov/.nvm/versions/node/v24.13.0/bin/npm",
+      "env": { "PATH": "/Users/feruzuktamov/.nvm/versions/node/v24.13.0/bin:/usr/local/bin:/usr/bin:/bin" },
       "runtimeArgs": ["run", "dev"],
       "port": 5173,
       "cwd": "/Users/feruzuktamov/Desktop/pole-app/frontend"

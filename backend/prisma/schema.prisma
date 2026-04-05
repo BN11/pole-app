@@ -106,8 +106,9 @@ model Field {
 
   ownerId   String
   owner     User      @relation(fields: [ownerId], references: [id])
-  bookings  Booking[]
-  reviews   Review[]
+  bookings     Booking[]
+  reviews      Review[]
+  workingHours WorkingHours[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -117,12 +118,15 @@ model Field {
 }
 
 model WorkingHours {
-  id         String  @id @default(cuid())
-  fieldId    String
-  dayOfWeek  Int     // 0=Sun … 6=Sat
-  openTime   String  // "08:00"
-  closeTime  String  // "22:00"
-  isClosed   Boolean @default(false)
+  id        String  @id @default(cuid())
+  fieldId   String
+  field     Field   @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+  dayOfWeek Int     // 0=Sun … 6=Sat
+  openTime  String  // "08:00"
+  closeTime String  // "22:00"
+  isClosed  Boolean @default(false)
+
+  @@index([fieldId])
 }
 
 model Booking {

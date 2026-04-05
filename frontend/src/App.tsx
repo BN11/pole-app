@@ -39,6 +39,7 @@ import { AddFieldPage } from '@/pages/AddFieldPage'
 import { AddTournamentPage } from '@/pages/AddTournamentPage'
 import { PhoneRequestPage } from '@/pages/PhoneRequestPage'
 import { BecomePartnerPage } from '@/pages/BecomePartnerPage'
+import { EditFieldPage } from '@/pages/EditFieldPage'
 
 function AppContent() {
   const { user, setUser, setToken, setLoading, token } = useAuthStore()
@@ -101,11 +102,15 @@ function AppContent() {
           path="/fields/add"
           element={isOwner || isAdmin ? <AddFieldPage /> : <Navigate to="/" replace />}
         />
+        <Route
+          path="/fields/:id/edit"
+          element={isOwner || isAdmin ? <EditFieldPage /> : <Navigate to="/" replace />}
+        />
 
-        {/* Operator / Admin */}
+        {/* Any logged-in user can apply for a tournament */}
         <Route
           path="/tournaments/add"
-          element={isOperator || isAdmin ? <AddTournamentPage /> : <Navigate to="/" replace />}
+          element={user ? <AddTournamentPage /> : <Navigate to="/" replace />}
         />
 
         {/* Admin only */}

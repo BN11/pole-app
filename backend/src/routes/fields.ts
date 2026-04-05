@@ -1,6 +1,16 @@
 import type { FastifyInstance } from 'fastify'
 import { prisma } from '../index'
 
+// Adds nested `amenities` object that frontend Field type expects
+function toFieldDto(field: any) {
+  if (!field) return field
+  const { hasLockerRoom, hasParking, hasLighting, hasCafeteria, hasShower, hasBallRent } = field
+  return {
+    ...field,
+    amenities: { hasLockerRoom, hasParking, hasLighting, hasCafeteria, hasShower, hasBallRent },
+  }
+}
+
 export async function fieldRoutes(app: FastifyInstance) {
   // GET /api/fields
   app.get('/', async (request, reply) => {
@@ -21,7 +31,7 @@ export async function fieldRoutes(app: FastifyInstance) {
     const total = await prisma.field.count({ where })
 
     return reply.send({
-      data: fields,
+      data: fields.map(toFieldDto),
       total,
       page: Number(page),
       hasMore: Number(page) * Number(limit) < total,
@@ -36,7 +46,7 @@ export async function fieldRoutes(app: FastifyInstance) {
       include: { owner: { select: { id: true, firstName: true, lastName: true } } },
     })
     if (!field) return reply.status(404).send({ error: 'Field not found' })
-    return reply.send({ data: field })
+    return reply.send({ data: toFieldDto(field) })
   })
 
   // GET /api/fields/:id/slots
@@ -49,13 +59,11 @@ export async function fieldRoutes(app: FastifyInstance) {
     const field = await prisma.field.findUnique({ where: { id } })
     if (!field) return reply.status(404).send({ error: 'Field not found' })
 
-    // Get existing bookings for that day
     const bookings = await prisma.booking.findMany({
       where: { fieldId: id, date, status: { in: ['PENDING', 'CONFIRMED'] } },
       select: { startTime: true, endTime: true },
     })
 
-    // Generate hourly slots 8:00–22:00
     const slots = []
     for (let h = 8; h < 22; h++) {
       const time = `${String(h).padStart(2, '0')}:00`
@@ -67,37 +75,70 @@ export async function fieldRoutes(app: FastifyInstance) {
     return reply.send({ data: slots })
   })
 
-  // POST /api/fields (owner creates field)
+  // POST /api/fields — owner creates a new field
   app.post('/', { preHandler: [app.authenticate] }, async (request, reply) => {
     const { userId } = request.user as { userId: string }
-    const body = request.body as any
+    const {
+      name, description, address, sportTypes,
+      pricePerHour, photos = [],
+      hasLockerRoom = false, hasParking = false, hasLighting = false,
+      hasCafeteria = false, hasShower = false, hasBallRent = false,
+    } = request.body as any
 
     const field = await prisma.field.create({
       data: {
-        ...body,
+        name,
+        description,
+        address,
+        sportTypes,
+        pricePerHour: Number(pricePerHour),
+        photos,
+        hasLockerRoom,
+        hasParking,
+        hasLighting,
+        hasCafeteria,
+        hasShower,
+        hasBallRent,
         ownerId: userId,
         status: 'PENDING',
         rating: 0,
         reviewCount: 0,
       },
     })
-    return reply.status(201).send({ data: field })
+    return reply.status(201).send({ data: toFieldDto(field) })
   })
 
-  // PATCH /api/fields/:id (owner updates — goes back to PENDING)
+  // PATCH /api/fields/:id — owner edits their field (status reset to PENDING for re-review)
   app.patch('/:id', { preHandler: [app.authenticate] }, async (request, reply) => {
     const { id } = request.params as { id: string }
     const { userId } = request.user as { userId: string }
-    const body = request.body as any
 
     const field = await prisma.field.findUnique({ where: { id } })
     if (!field) return reply.status(404).send({ error: 'Not found' })
     if (field.ownerId !== userId) return reply.status(403).send({ error: 'Forbidden' })
 
+    const {
+      name, description, address, sportTypes, pricePerHour, photos,
+      hasLockerRoom, hasParking, hasLighting, hasCafeteria, hasShower, hasBallRent,
+    } = request.body as any
+
     const updated = await prisma.field.update({
       where: { id },
-      data: { ...body, status: 'PENDING' },
+      data: {
+        ...(name !== undefined && { name }),
+        ...(description !== undefined && { description }),
+        ...(address !== undefined && { address }),
+        ...(sportTypes !== undefined && { sportTypes }),
+        ...(pricePerHour !== undefined && { pricePerHour: Number(pricePerHour) }),
+        ...(photos !== undefined && { photos }),
+        ...(hasLockerRoom !== undefined && { hasLockerRoom }),
+        ...(hasParking !== undefined && { hasParking }),
+        ...(hasLighting !== undefined && { hasLighting }),
+        ...(hasCafeteria !== undefined && { hasCafeteria }),
+        ...(hasShower !== undefined && { hasShower }),
+        ...(hasBallRent !== undefined && { hasBallRent }),
+      },
     })
-    return reply.send({ data: updated })
+    return reply.send({ data: toFieldDto(updated) })
   })
 }
