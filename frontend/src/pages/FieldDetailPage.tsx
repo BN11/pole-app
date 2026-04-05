@@ -167,28 +167,41 @@ export function FieldDetailPage() {
 
         {/* Time slots */}
         <div>
-          <h3 className="section-title mb-3">
-            <ClockIcon className="inline w-4 h-4 mr-1" />
-            Доступные слоты
-          </h3>
-          <div className="grid grid-cols-4 gap-2">
-            {slots?.map((slot) => (
-              <button
-                key={slot.time}
-                disabled={!slot.available}
-                onClick={() => setSelectedSlot(slot)}
-                className={`py-2.5 rounded-xl text-sm font-medium transition-all ${
-                  !slot.available
-                    ? 'bg-surface text-white/20 cursor-not-allowed'
-                    : selectedSlot?.time === slot.time
-                    ? 'bg-primary text-dark'
-                    : 'bg-surface border border-surface-border text-white hover:border-primary/50'
-                }`}
-              >
-                {slot.time}
-              </button>
-            ))}
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="section-title">
+              <ClockIcon className="inline w-4 h-4 mr-1" />
+              Выберите время
+            </h3>
+            {!selectedSlot && (
+              <span className="text-white/30 text-xs">↓ нажмите на слот</span>
+            )}
           </div>
+          {!slots ? (
+            <div className="grid grid-cols-4 gap-2">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="h-10 rounded-xl bg-surface animate-pulse" />
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-4 gap-2">
+              {slots.map((slot) => (
+                <button
+                  key={slot.time}
+                  disabled={!slot.available}
+                  onClick={() => setSelectedSlot(slot.available ? slot : null)}
+                  className={`py-2.5 rounded-xl text-sm font-medium transition-all ${
+                    !slot.available
+                      ? 'bg-surface text-white/20 cursor-not-allowed line-through'
+                      : selectedSlot?.time === slot.time
+                      ? 'bg-primary text-dark ring-2 ring-primary ring-offset-1 ring-offset-dark'
+                      : 'bg-surface border border-surface-border text-white active:bg-primary/20'
+                  }`}
+                >
+                  {slot.time}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Description */}

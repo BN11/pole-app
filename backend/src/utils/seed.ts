@@ -84,7 +84,7 @@ export async function seedIfEmpty(prisma: PrismaClient) {
 
   await prisma.tournament.create({
     data: {
-      title: 'Кубок Ташкента 2026',
+      name: 'Кубок Ташкента 2026',
       description: 'Ежегодный городской турнир по мини-футболу. 5x5, нокаут-система.',
       sportType: 'FOOTBALL',
       format: '5x5',

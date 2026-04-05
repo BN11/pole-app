@@ -108,7 +108,7 @@ export function HomePage() {
       <section className="px-4">
         <div className="flex items-center justify-between mb-3">
           <h2 className="section-title">Рядом с вами</h2>
-          <Link to="/fields?sort=distance" className="text-primary text-sm font-medium">
+          <Link to="/map" className="text-primary text-sm font-medium">
             На карте
           </Link>
         </div>

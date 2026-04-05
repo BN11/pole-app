@@ -28,6 +28,11 @@ export function BookingConfirmPage() {
   const state = location.state as BookingState | null
 
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('CASH')
+  const [success, setSuccess] = useState(false)
+
+  useEffect(() => {
+    if (!state) navigate('/fields')
+  }, [])
 
   const mutation = useMutation({
     mutationFn: () =>
@@ -41,7 +46,6 @@ export function BookingConfirmPage() {
       }),
     onSuccess: async (res) => {
       const bookingId = res.data.data.id
-      // For online payments — get checkout URL and redirect
       if (paymentMethod === 'PAYME' || paymentMethod === 'CLICK') {
         try {
           const endpoint = paymentMethod === 'PAYME' ? '/payment/payme/init' : '/payment/click/init'
@@ -49,21 +53,73 @@ export function BookingConfirmPage() {
           window.location.href = payRes.data.url
           return
         } catch {
-          // fallback to bookings page
+          // fallback to success screen
         }
       }
-      navigate('/bookings')
+      setSuccess(true)
     },
   })
-
-  useEffect(() => {
-    if (!state) navigate('/fields')
-  }, [])
 
   if (!state) return null
 
   const { field, date, startTime, endTime, durationHours, totalPrice } = state
 
+  // ── Success screen ──────────────────────────────────────────────────────────
+  if (success) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center px-6 text-center bg-dark">
+        {/* Animated checkmark */}
+        <div className="w-24 h-24 rounded-full bg-primary/10 border-2 border-primary flex items-center justify-center mb-6 animate-[scale-in_0.3s_ease-out]">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="w-12 h-12 text-primary">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+        </div>
+
+        <h1 className="text-2xl font-black text-white mb-2">Бронь создана!</h1>
+        <p className="text-white/50 text-sm mb-8 leading-relaxed">
+          Заявка отправлена владельцу поля.<br/>Ожидайте подтверждения в Telegram.
+        </p>
+
+        {/* Booking summary */}
+        <div className="glass-card p-4 w-full text-left mb-6">
+          <div className="flex gap-3 items-center mb-3">
+            <div className="w-10 h-10 rounded-xl bg-surface-hover flex items-center justify-center text-xl flex-shrink-0">
+              {SPORT_ICONS[field.sportTypes[0]] || '🏟️'}
+            </div>
+            <div>
+              <p className="text-white font-semibold text-sm">{field.name}</p>
+              <p className="text-white/50 text-xs">{field.address}</p>
+            </div>
+          </div>
+          <div className="border-t border-surface-border pt-3 flex flex-col gap-2">
+            <div className="flex justify-between">
+              <span className="text-white/50 text-sm">Дата</span>
+              <span className="text-white text-sm font-medium capitalize">
+                {format(new Date(date), 'd MMMM yyyy', { locale: ru })}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-white/50 text-sm">Время</span>
+              <span className="text-white text-sm font-medium">{startTime} — {endTime}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-white/50 text-sm">Сумма</span>
+              <span className="text-primary font-bold">{formatPrice(totalPrice)}</span>
+            </div>
+          </div>
+        </div>
+
+        <button onClick={() => navigate('/bookings')} className="neon-btn w-full mb-3">
+          Мои брони
+        </button>
+        <button onClick={() => navigate('/')} className="w-full py-3 text-white/50 text-sm">
+          На главную
+        </button>
+      </div>
+    )
+  }
+
+  // ── Confirmation form ───────────────────────────────────────────────────────
   return (
     <div className="flex flex-col min-h-screen pb-24">
       {/* Header */}
@@ -112,17 +168,14 @@ export function BookingConfirmPage() {
               {format(new Date(date), 'EEEE, d MMMM yyyy', { locale: ru })}
             </span>
           </div>
-
           <div className="flex justify-between items-center">
             <span className="text-white/50 text-sm">Время</span>
             <span className="text-white text-sm font-medium">{startTime} — {endTime}</span>
           </div>
-
           <div className="flex justify-between items-center">
             <span className="text-white/50 text-sm">Длительность</span>
             <span className="text-white text-sm font-medium">{durationHours} ч.</span>
           </div>
-
           <div className="border-t border-surface-border pt-3 flex justify-between items-center">
             <span className="text-white font-semibold">Итого</span>
             <span className="text-primary font-black text-xl">{formatPrice(totalPrice)}</span>
@@ -150,7 +203,6 @@ export function BookingConfirmPage() {
           </div>
         </div>
 
-        {/* Payme/Click notice */}
         {(paymentMethod === 'PAYME' || paymentMethod === 'CLICK') && (
           <div className="bg-blue-500/10 border border-blue-500/20 rounded-2xl px-4 py-3">
             <p className="text-blue-400 text-sm">
@@ -173,7 +225,7 @@ export function BookingConfirmPage() {
         {mutation.isError && (
           <div className="bg-red-500/10 border border-red-500/20 rounded-2xl px-4 py-3">
             <p className="text-red-400 text-sm">
-              Ошибка бронирования. Возможно, слот уже занят.
+              Ошибка бронирования. Возможно, этот слот уже занят — вернитесь и выберите другое время.
             </p>
           </div>
         )}

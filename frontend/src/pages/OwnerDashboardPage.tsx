@@ -79,11 +79,14 @@ export function OwnerDashboardPage() {
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`flex-1 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+            className={`flex-1 py-2.5 rounded-xl text-xs font-semibold transition-all relative ${
               tab === t ? 'bg-primary text-dark' : 'text-white/50'
             }`}
           >
             {t === 'stats' ? 'График' : t === 'fields' ? 'Поля' : 'Брони'}
+            {t === 'bookings' && (bookings?.filter(b => b.status === 'PENDING').length ?? 0) > 0 && tab !== 'bookings' && (
+              <span className="absolute top-1 right-1 w-2 h-2 bg-yellow-400 rounded-full" />
+            )}
           </button>
         ))}
       </div>
@@ -205,9 +208,17 @@ function OwnerFieldsList({ fields, isLoading }: { fields?: Field[]; isLoading: b
 
 function OwnerBookingsList({ bookings, isLoading }: { bookings?: Booking[]; isLoading: boolean }) {
   const qc = useQueryClient()
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ['owner-bookings'] })
+    qc.invalidateQueries({ queryKey: ['owner-stats'] })
+  }
   const confirmMutation = useMutation({
     mutationFn: (id: string) => api.patch(`/bookings/${id}/confirm`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['owner-bookings'] }),
+    onSuccess: invalidate,
+  })
+  const cancelMutation = useMutation({
+    mutationFn: (id: string) => api.patch(`/bookings/${id}/cancel`),
+    onSuccess: invalidate,
   })
 
   if (isLoading) return (
@@ -223,30 +234,48 @@ function OwnerBookingsList({ bookings, isLoading }: { bookings?: Booking[]; isLo
     </div>
   )
 
+  const pending = bookings.filter(b => b.status === 'PENDING')
+  const rest = bookings.filter(b => b.status !== 'PENDING')
+
   return (
     <div className="flex flex-col gap-3">
-      {bookings.map((booking) => (
-        <div key={booking.id} className="glass-card p-4">
+      {pending.length > 0 && (
+        <p className="text-yellow-400 text-xs font-semibold">Ожидают подтверждения — {pending.length}</p>
+      )}
+      {[...pending, ...rest].map((booking) => (
+        <div key={booking.id} className={`glass-card p-4 ${booking.status === 'PENDING' ? 'border border-yellow-400/20' : ''}`}>
           <div className="flex justify-between items-start mb-2">
-            <div>
-              <p className="font-semibold text-white text-sm">{booking.field.name}</p>
+            <div className="flex-1 min-w-0 mr-2">
+              <p className="font-semibold text-white text-sm truncate">{booking.field.name}</p>
               <p className="text-white/50 text-xs">{booking.date} · {booking.startTime}–{booking.endTime}</p>
+              <p className="text-white/40 text-xs mt-0.5">
+                👤 {booking.user.firstName} {booking.user.lastName ?? ''}
+                {booking.user.phone && ` · ${booking.user.phone}`}
+              </p>
             </div>
-            <span className="text-primary font-bold text-sm">{formatPrice(booking.totalPrice)}</span>
+            <div className="text-right flex-shrink-0">
+              <span className="text-primary font-bold text-sm">{formatPrice(booking.totalPrice)}</span>
+              <p className="text-white/30 text-[10px] mt-0.5">{booking.paymentMethod}</p>
+            </div>
           </div>
-          <div className="flex items-center justify-between">
-            <p className="text-white/50 text-xs">
-              {booking.user.firstName} {booking.user.lastName ?? ''}
-            </p>
-            {booking.status === 'PENDING' && (
+          {booking.status === 'PENDING' && (
+            <div className="flex gap-2 mt-1">
+              <button
+                onClick={() => cancelMutation.mutate(booking.id)}
+                disabled={cancelMutation.isPending || confirmMutation.isPending}
+                className="flex-1 py-2 rounded-xl border border-red-400/20 text-red-400 text-xs font-medium active:bg-red-400/10 transition-colors disabled:opacity-40"
+              >
+                Отклонить
+              </button>
               <button
                 onClick={() => confirmMutation.mutate(booking.id)}
-                className="text-xs bg-primary/20 text-primary border border-primary/30 px-3 py-1 rounded-full font-medium"
+                disabled={confirmMutation.isPending || cancelMutation.isPending}
+                className="flex-1 py-2 rounded-xl bg-primary text-dark text-xs font-bold disabled:opacity-40"
               >
-                Подтвердить
+                {confirmMutation.isPending ? '...' : 'Подтвердить'}
               </button>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       ))}
     </div>

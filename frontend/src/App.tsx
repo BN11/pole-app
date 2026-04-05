@@ -40,6 +40,7 @@ import { AddTournamentPage } from '@/pages/AddTournamentPage'
 import { PhoneRequestPage } from '@/pages/PhoneRequestPage'
 import { BecomePartnerPage } from '@/pages/BecomePartnerPage'
 import { EditFieldPage } from '@/pages/EditFieldPage'
+import { FieldsMapPage } from '@/pages/FieldsMapPage'
 
 function AppContent() {
   const { user, setUser, setToken, setLoading, token } = useAuthStore()
@@ -92,6 +93,7 @@ function AppContent() {
         <Route path="/booking/confirm"   element={<BookingConfirmPage />} />
         <Route path="/profile"           element={<ProfilePage />} />
         <Route path="/become-partner"    element={<BecomePartnerPage />} />
+        <Route path="/map"               element={<FieldsMapPage />} />
 
         {/* Owner / Admin */}
         <Route

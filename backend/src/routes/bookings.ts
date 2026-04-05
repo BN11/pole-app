@@ -109,14 +109,20 @@ export async function bookingRoutes(app: FastifyInstance) {
     return reply.send({ data: updated })
   })
 
-  // PATCH /api/bookings/:id/cancel
+  // PATCH /api/bookings/:id/cancel — user OR field owner can cancel
   app.patch('/:id/cancel', { preHandler: [app.authenticate] }, async (request, reply) => {
     const { id } = request.params as { id: string }
     const { userId } = request.user as { userId: string }
 
-    const booking = await prisma.booking.findUnique({ where: { id } })
+    const booking = await prisma.booking.findUnique({
+      where: { id },
+      include: { field: true },
+    })
     if (!booking) return reply.status(404).send({ error: 'Not found' })
-    if (booking.userId !== userId) return reply.status(403).send({ error: 'Forbidden' })
+
+    const isBookingOwner = booking.userId === userId
+    const isFieldOwner = (booking.field as any).ownerId === userId
+    if (!isBookingOwner && !isFieldOwner) return reply.status(403).send({ error: 'Forbidden' })
     if (booking.status === 'CANCELLED') return reply.status(400).send({ error: 'Already cancelled' })
 
     const updated = await prisma.booking.update({
@@ -130,6 +136,7 @@ export async function bookingRoutes(app: FastifyInstance) {
       date: updated.date,
       startTime: updated.startTime,
       endTime: updated.endTime,
+      byOwner: isFieldOwner,
     })
     return reply.send({ data: updated })
   })
