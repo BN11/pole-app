@@ -74,7 +74,6 @@ function AppContent() {
 
   const isOwner = user?.role === 'FIELD_OWNER'
   const isAdmin = user?.role === 'SUPER_ADMIN'
-  const isOperator = user?.role === 'TOURNAMENT_OPERATOR'
 
   if (showPhoneRequest && user) {
     return <PhoneRequestPage onDone={() => setShowPhoneRequest(false)} />
